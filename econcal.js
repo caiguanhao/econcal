@@ -9,6 +9,7 @@ function _getPage() {
       try {
         browser = await puppeteer.launch()
         const page = await browser.newPage();
+        // visit an fxstreet page which loads fast
         await page.goto('https://www.fxstreet.hk/info/sitemap');
         console.info('page loaded');
         const data = await page.evaluate(async () => {
