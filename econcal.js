@@ -45,23 +45,27 @@ const http = require('http');
 
 const server = http.createServer(async (req, res) => {
   try {
+    const start = new Date();
+    const host = req.headers['x-api-host'] || 'https://calendar.fxstreet.com';
     const page = await getPage();
+    const url = host + req.url;
     const data = await page.evaluate(async (url) => {
-      url += url.indexOf('?') === -1 ? '?' : '&';
-      url += 'authorization=' + window.FXAUTH;
       const json = await new Promise((resolve, reject) => {
-        jQuery.getJSON(url).
-          done((json) => {
-            resolve(json);
-          }).
-          fail((xhr, statusText, err) => {
-            reject('error');
-          });
+        fetch(url, {
+          headers: {
+            Authorization: window.FXAUTH
+          }
+        }).then((res) => {
+          resolve(res.text());
+        }).catch((err) => {
+          reject(err.message);
+        });
       });
       return json;
-    }, 'https://calendar.fxstreet.com' + req.url);
+    }, url);
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    res.end(data);
+    console.log('GET', url, '-- size:', data.length, '-- duration (ms):', (new Date() - start));
   } catch (e) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: e.message }));
