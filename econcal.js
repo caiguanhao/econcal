@@ -44,11 +44,11 @@ function getPage() {
 const http = require('http');
 
 const server = http.createServer(async (req, res) => {
+  const host = req.headers['x-api-host'] || 'https://calendar.fxstreet.com';
+  const url = host + req.url;
   try {
     const start = new Date();
-    const host = req.headers['x-api-host'] || 'https://calendar.fxstreet.com';
     const page = await getPage();
-    const url = host + req.url;
     const data = await page.evaluate(async (url) => {
       const json = await new Promise((resolve, reject) => {
         fetch(url, {
@@ -69,6 +69,7 @@ const server = http.createServer(async (req, res) => {
   } catch (e) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: e.message }));
+    console.log('FAIL', url);
   }
 });
 

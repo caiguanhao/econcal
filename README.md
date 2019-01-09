@@ -13,4 +13,6 @@ node econcal.js
 
 # once the server is started and listening on port 6000, you can make your API calls like this:
 curl 'http://localhost:6000/v4/eventdate/mini?view=1&start=20190101&end=20190101'
+
+curl 'http://localhost:6000/v4/zh-CN/post/filterfull/generalfeed?take=1&bodyType=FullHtml' -H 'X-API-HOST: https://subscriptions.fxstreet.com'
 ```
