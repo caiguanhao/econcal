@@ -1,6 +1,15 @@
 const puppeteer = require('puppeteer');
 
+let info = console.info;
+console.info = function () {
+  let args = Array.prototype.slice.call(arguments, 0);
+  args[0] = (new Date).toJSON() + ' ' + args[0];
+  info.apply(console, args);
+};
+
+let maxTimeout = 60 * 30;
 let currentPage = null;
+const port = 6000;
 
 function _getPage() {
   return new Promise(async (resolve, reject) => {
@@ -19,17 +28,19 @@ function _getPage() {
           window.FXAUTH = data.token_type + ' ' + data.access_token;
           return data;
         });
-        console.log('get token', data.access_token.slice(0, 50));
+        console.info('get token', data.access_token.slice(0, 50));
         currentPage = page;
+        let seconds = Math.max(10, Math.min(data.expires_in - 60, maxTimeout));
         setTimeout(async () => {
           await _getPage();
           await page.browser().close()
-          console.log('browser closed');
-        }, (data.expires_in - 60) * 1000);
+          console.info('browser closed');
+        }, seconds * 1000);
+        console.info('refresh token in', seconds, 'seconds');
         return resolve(currentPage);
       } catch (e) {
         if (browser) await browser.close();
-        console.log('retrying; error:', e);
+        console.info('retrying; error:', e);
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
@@ -65,19 +76,18 @@ const server = http.createServer(async (req, res) => {
     }, url);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(data);
-    console.log('GET', url, '-- size:', data.length, '-- duration (ms):', (new Date() - start));
+    console.info('GET', url, '-- size:', data.length, '-- duration (ms):', (new Date() - start));
   } catch (e) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: e.message }));
-    console.log('FAIL', url);
+    console.info('FAIL', url);
   }
 });
 
-console.log('getting token...');
+console.info('getting token...');
 getPage().then(() => {
-  const port = 6000;
   server.listen(port, (err) => {
     if (err) return console.error(err);
-    console.log(`server is listening on ${port}`);
+    console.info(`server is listening on ${port}`);
   });
 });
