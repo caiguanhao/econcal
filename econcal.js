@@ -7,6 +7,7 @@ console.info = function () {
   info.apply(console, args);
 };
 
+// the puppeteer browser might cost you a lot of memory, kill it periodically
 let maxTimeout = 60 * 30;
 let currentPage = null;
 const port = 6000;
