@@ -17,11 +17,25 @@ function _getPage() {
     let browser;
     while (true) {
       try {
-        browser = await puppeteer.launch()
+        console.info('launching browser');
+        const launchOptions = {};
+        const proxy = process.env.https_proxy || process.env.HTTPS_PROXY;
+        if (proxy) {
+          launchOptions.args = [
+            `--proxy-server=${proxy}`,
+            '--host-resolver-rules=MAP * ~NOTFOUND , EXCLUDE 127.0.0.1',
+          ];
+          console.info('using proxy', proxy);
+        }
+        browser = await puppeteer.launch(launchOptions)
         const page = await browser.newPage();
         // visit an fxstreet page which loads fast
-        await page.goto('https://www.fxstreet.hk/info/sitemap');
+        const url = 'https://www.fxstreet.hk/info/terms-conditions';
+        console.info('loading', url);
+        await page.goto(url, { waitUntil: 'networkidle0' });
         console.info('page loaded');
+        await page.waitForFunction(() => typeof jQuery !== 'undefined' && typeof FXStreetAuth !== 'undefined', { timeout: 30000 });
+        console.info('jQuery and FXStreetAuth ready');
         const data = await page.evaluate(async () => {
           const data = await FXStreetAuth.Authorization.getInstance({
             authorizationUrl: 'https://authorization.fxstreet.com/token'
@@ -29,7 +43,7 @@ function _getPage() {
           window.FXAUTH = data.token_type + ' ' + data.access_token;
           return data;
         });
-        console.info('get token', data.access_token.slice(0, 50));
+        console.info('retrieved token', data.access_token.slice(0, 50) + '...');
         currentPage = page;
         let seconds = Math.max(10, Math.min(data.expires_in - 60, maxTimeout));
         setTimeout(async () => {
